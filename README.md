@@ -74,3 +74,24 @@ For example in bash, the decryption key from the above example passwords can be 
 91df2cd7631c309f2027b89a5126a481bf39ade2565b0af0947faad456a5cc9c
 
 This is the hex representation of the key, the key has 32 bytes, the first byte of the key is 0x91, the last one is 0x9c.
+
+# Decrypt the data
+
+The data received from the KM200 is encrypted with Rijndael in ECB mode with the 128 bit (32 byte) key derived above.
+This should be enough informaiton to decrypt the received data, but the various KM200 software modules mentioned above 
+demonstrate how the decryption is done in various programming languages. 
+
+For completeness, the encrypted data can be decrypted in bash with openSSL like this:
+
+    grep .. DateTime | base64 --decode | openssl enc -aes-256-ecb -d -nopad -K $Key
+
+This decrypts data previously received with wget and saved in file "DateTime".  `grep ..` part suppresses the empty first line of the web server response, the `base64 --decode` command extracts the binary ciphertext from the base64 encoded data. 
+Finally, the openssl command decrypts the ciphertext. 
+`enc` tells openssl to encrypt or decrypt, with the `-d` option later chooses decryption rather than encryption.
+The -aes-256-ecb selects the decryption algorithm, this is the correct choice for decrypting rijndal-128 in ecb mode.
+The -nopad argument tells openssl that no padding on the part of openssl is needed 
+because the encrypted web server response is already padded to a multiple of the decryption block size.
+The -K $Key finally specify the encryption key as derived in the previous section, it can be given here in hex.
+
+Retrieving the latest data and decryption can be combined like this:
+    curl -A TeleHeater http://TK-850-JH3E-NET/gateway/DateTime -s | grep .. | base64 --decode | openssl enc -aes-256-ecb -d -nopad -K $Key
