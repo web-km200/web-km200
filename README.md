@@ -1,18 +1,19 @@
 # web-km200
 How to interact with Buderus Heating Systems through the Web KM200 device.
 
-The Web KM200 device uses DHCP has an open TCP Port 80. 
+The Web KM200 device uses DHCP to acquire an IPv4 address in your home network.
 It shows up with host name TK-850-JH3E-NET in the DHCP server. 
 Search engines find a PDF manual for an embedded development board for this string at 
 [https://www.tessera.co.jp/Download/TK-850JH3E+NET_UM_E.pdf](https://www.tessera.co.jp/Download/TK-850JH3E+NET_UM_E.pdf).
 The manual describes an example program for the board which is a web server. 
+The Web KM200 provides an open TCP Port 80.  
 Buderus is probably using this embedded board inside the web KM200 and the software running on it 
 was probably developed by modifying the example web server program.
 
 Some home automation systems like openHAB and fhem and some standalone skripts can communicate with the Web KM200, and at least read values from the heating system. Some reverse engineering has apparently already been done, or some information was transferred from Buderus to the implementors of existing software.
 The necessary information how to talk to the Web KM200 is already present in the code out there,
 
-Here, this existing information is merely summarized it in English instead of code.
+Here, this existing information is merely summarized in English instead of in code.
 
 # Preparation
 
@@ -22,9 +23,9 @@ It seems to be necessary to
 * tick several boxes to allow Buderus everything they want from your firstborn and more, 
 * set up a private password for the web KM device with the smartphone app.
 
-After that, internet access can be blocked for the Web KM200 device, and the smartphone app can be deleted.
+After that, device owners who want to interact with their Buderus heating system locally without using the Buderus app and without sending their system's data to Buderus' servers may block internet access  for the Web KM200 device, and delete the smartphone app.
 
-# HTTP communication
+# Local HTTP communication
 When opening http://TK-850-JH3E-NET/ in a browser, then an empty web page displays. Any URL other than / shows
 
 > Sorry, the requested file does not exist on this server.
@@ -52,7 +53,7 @@ To be able to decrypt, the decryption key must be known.
 
 # Derive the decryption key
 The decryption key is created from 3 pieces of information:
-- The gateway password of the Web KM200 device as printed on a sticker on the outside of that device, without the dashes. 16 charecters. Example: NeUCsyQMLVYqKJec
+- The gateway password of the Web KM200 device as printed on a sticker on the outside of that device, without the dashes. 16 characters. Example: NeUCsyQMLVYqKJec
 - The private password previously created in the smartphone app. Example: HnE75f+a%aXP
 - A sequence of 32 magic bytes. These: 
     0x86, 0x78, 0x45, 0xe9, 0x7c, 0x4e, 0x29, 0xdc, 0xe5, 0x22, 0xb9, 0xa7, 0xd3, 0xa3, 0xe0, 0x7b, 0x15, 0x2b, 0xff, 0xad, 0xdd, 0xbe, 0xd7, 0xf5, 0xff, 0xd8, 0x42, 0xe9, 0x89, 0x5a, 0xd1, 0xe4
@@ -78,7 +79,7 @@ This is the hex representation of the key, the key has 32 bytes, the first byte 
 # Decrypt the data
 
 The data received from the KM200 is encrypted with Rijndael in ECB mode with the 128 bit (32 byte) key derived above.
-This should be enough informaiton to decrypt the received data, but the various KM200 software modules mentioned above 
+This should be enough information to decrypt the received data, but the various KM200 software modules mentioned above 
 demonstrate how the decryption is done in various programming languages. 
 
 For completeness, the encrypted data can be decrypted in bash with openSSL like this:
