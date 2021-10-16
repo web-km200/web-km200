@@ -5,7 +5,7 @@ The Web KM200 device uses DHCP to acquire an IPv4 address in your home network.
 It shows up with host name TK-850-JH3E-NET in the DHCP server. 
 Search engines find a PDF manual for an embedded development board for this string at 
 [https://www.tessera.co.jp/Download/TK-850JH3E+NET_UM_E.pdf](https://www.tessera.co.jp/Download/TK-850JH3E+NET_UM_E.pdf).
-The manual describes an example program for the board which is a web server. 
+The manual describes an example program for the board which is a web server.
 The Web KM200 provides an open TCP Port 80.  
 Buderus is probably using this embedded board inside the web KM200 and the software running on it 
 was probably developed by modifying the example web server program.
@@ -91,8 +91,11 @@ Finally, the openssl command decrypts the ciphertext.
 `enc` tells openssl to encrypt or decrypt, with the `-d` option later chooses decryption rather than encryption.
 The -aes-256-ecb selects the decryption algorithm, this is the correct choice for decrypting rijndal-128 in ecb mode.
 The -nopad argument tells openssl that no padding on the part of openssl is needed 
-because the encrypted web server response is already padded to a multiple of the decryption block size.
+because the encrypted web server response is already padded to a multiple of the decryption block size: The Web KM 200 has appended bytes with value 0x00 to the cleartext for this purpose.
 The -K $Key finally specify the encryption key as derived in the previous section, it can be given here in hex.
 
+Although the padding bytes with value 0x00 will not show up when displaying the decrypted json in a terminal, they are present at the end of the output stream of the openssl decryption command. Depending on how the json data is processed after the encryption, they may or may not hamper the post-processing. It is possible to remove these 0x00 bytes from the decrypted output by piping the output through `tr -d '\0'`.
+
 Retrieving the latest data and decryption can be combined like this:
-    curl -A TeleHeater http://TK-850-JH3E-NET/gateway/DateTime -s | grep .. | base64 --decode | openssl enc -aes-256-ecb -d -nopad -K $Key
+
+    curl -A TeleHeater http://TK-850-JH3E-NET/gateway/DateTime -s | grep .. | base64 --decode | openssl enc -aes-256-ecb -d -nopad -K $Key | tr -d '\0'
