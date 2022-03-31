@@ -246,3 +246,33 @@ However, not all listed entries can actually be read, and it may also be that
 not all paths that can be read are actually listed here. Some of the listed
 entries are themselves directories, they can be recognized by their
 `"type": "refnum"` property in their JSON response when querying them.
+
+# Changing settings
+
+Some settings can be changed by sending data using HTTP POST requests to the
+respective URIs. The data sent must be encrypted JSON data encoded as base64.
+The encryption key is the same that is also used for decryption of HTTP GET
+responses. The JSON data must be padded to a multiple of 16 bytes. It is often
+sufficient to send a JSON object with only the "value" field. Example:
+
+To set the desired hot water temperature for the "high" setpoints to 55C,
+the following JSON object can be used:
+
+    {"value": 55}
+
+In order to pad the message to a multiple of 16 bytes, instead of appending
+'\0' bytes, the JSON object can also be padded with spaces:
+
+    {"value":    55}
+
+To encrypt the message, the same openssl command can be used as for decryption,
+but without the -d option. Then encode the ciphertext with base64:
+
+    echo -n '{"value":    55}' | openssl enc -aes-256-ecb -nopad -K $Key | base64
+
+Finally, to send this data using HTTP POST, curl can be used:
+
+    curl -A TeleHeater http://TK-850-JH3E-NET/dhwCircuits/dhw1/temperatureLevels/high -d $(echo -n '{"value":    55}' | openssl enc -aes-256-ecb -nopad -K $Key | base64)
+
+Here the -d option tells curl to send the given data, and this also tells curl
+to use method POST instead of method GET.
