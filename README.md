@@ -99,3 +99,150 @@ Although the padding bytes with value 0x00 will not show up when displaying the 
 Retrieving the latest data and decryption can be combined like this:
 
     curl -A TeleHeater http://TK-850-JH3E-NET/gateway/DateTime -s | grep .. | base64 --decode | openssl enc -aes-256-ecb -d -nopad -K $Key | tr -d '\0'
+
+# Interpret the decrypted data
+
+The command above returns readable json data, e.g.
+
+    {"id":"/gateway/DateTime","type":"stringValue","writeable":1,"recordable":0,"value":"2022-03-21T20:10:58"}
+
+where "id" contains a copy of the path that we asked for while "value" contains
+the result data. To extract only the value using the shell, the command line
+tool `jq` can be used:
+
+    curl -A TeleHeater -s http://TK-850-JH3E-NET/gateway/DateTime | grep .. | base64 --decode | openssl enc -aes-256-ecb -d -nopad -K $Key | tr -d '\0' | jq .value
+
+## Interpret "switchProgram" data
+
+Some URIs contain data of type "switchProgram". "Switch programs" control at
+which times and on which weekdays hot water and rooms are to be heated and
+to what temperatures. E.g., the switch program for generating hot water can
+be fetched and decrypted from URL
+http://TK-850-JH3E-NET/dhwCircuits/dhw1/switchPrograms/A may look like this:
+
+    {
+      "id": "/dhwCircuits/dhw1/switchPrograms/A",
+      "type": "switchProgram",
+      "setpointProperty": {
+        "id": "/dhwCircuits/dhw1/temperatureLevels",
+        "uri": "http://192.168.178.33/dhwCircuits/dhw1/temperatureLevels"
+      },
+      "maxNbOfSwitchPoints": 42,
+      "maxNbOfSwitchPointsPerDay": 6,
+      "switchPointTimeRaster": 15,
+      "writeable": 1,
+      "switchPoints": [
+        {
+          "dayOfWeek": "Mo",
+          "setpoint": "high",
+          "time": 390
+        },
+        {
+          "dayOfWeek": "Mo",
+          "setpoint": "off",
+          "time": 600
+        }
+      ]
+    }
+
+A switch program contains "switch points".  In this example, there can be
+up to 6 switch points per day and a total of up to 42 switch points per week.
+The switch points are listed  in the array "switchPoints". Each switch point
+is a JSON object with the fields "dayOfWeek", "setpoint", and "time".
+"dayOfWeek" contains the first two letters of the English names for weekdays,
+"time" contains the minutes past midnight when this switch point switches. The
+"time" value must be a multiple of the value in "switchPointTimeRaster".
+The string value contained in field "setpoint" can be appended to the URI
+contained in "setPointProperty", separated by the path separator "/". This
+combined URI can be used to read the desired temperature setting.
+
+The shown example would switch the hot water heater to setpoint "high" every
+Monday 390 minutes after midnight, which is at 6:30 AM, and to setpoint "off"
+at 10:00 AM. A real-world switch program would also contain entries for the
+other weekdays.
+
+# Find valid paths recursively
+
+With some constraints, valid paths where values can be read or written can be
+found recursively:  Take the gateway/DateTime example: we can list the entries
+of directory gateway by asking the web-km200 for the path gateway:
+
+    curl -A TeleHeater -s http://TK-850-JH3E-NET/gateway | grep .. | base64 --decode | openssl enc -aes-256-ecb -d -nopad -K $Key | tr -d '\0'
+
+which may respond with JSON similar to the following:
+
+    {
+      "id": "/gateway",
+      "type": "refEnum",
+      "references": [
+        {
+          "id": "/gateway/uuid",
+          "uri": "http://192.168.178.33/gateway/uuid"
+        },
+        {
+          "id": "/gateway/firmware",
+          "uri": "http://192.168.178.33/gateway/firmware"
+        },
+        {
+          "id": "/gateway/userpassword",
+          "uri": "http://192.168.178.33/gateway/userpassword"
+        },
+        {
+          "id": "/gateway/versionFirmware",
+          "uri": "http://192.168.178.33/gateway/versionFirmware"
+        },
+        {
+          "id": "/gateway/versionHardware",
+          "uri": "http://192.168.178.33/gateway/versionHardware"
+        },
+        {
+          "id": "/gateway/boschSHPassword",
+          "uri": "http://192.168.178.33/gateway/boschSHPassword"
+        },
+        {
+          "id": "/gateway/portalPassword",
+          "uri": "http://192.168.178.33/gateway/portalPassword"
+        },
+        {
+          "id": "/gateway/knxPassword",
+          "uri": "http://192.168.178.33/gateway/knxPassword"
+        },
+        {
+          "id": "/gateway/haiPassword",
+          "uri": "http://192.168.178.33/gateway/haiPassword"
+        },
+        {
+          "id": "/gateway/DateTime",
+          "uri": "http://192.168.178.33/gateway/DateTime"
+        },
+        {
+          "id": "/gateway/instPassword",
+          "uri": "http://192.168.178.33/gateway/instPassword"
+        },
+        {
+          "id": "/gateway/instAccess",
+          "uri": "http://192.168.178.33/gateway/instAccess"
+        },
+        {
+          "id": "/gateway/instWriteAccess",
+          "uri": "http://192.168.178.33/gateway/instWriteAccess"
+        },
+        {
+          "id": "/gateway/version",
+          "uri": "http://192.168.178.33/gateway/version"
+        },
+        {
+          "id": "/gateway/update",
+          "uri": "http://192.168.178.33/gateway/update"
+        },
+        {
+          "id": "/gateway/logging",
+          "uri": "http://192.168.178.33/gateway/logging"
+        }
+      ]
+    }
+
+However, not all listed entries can actually be read, and it may also be that
+not all paths that can be read are actually listed here. Some of the listed
+entries are themselves directories, they can be recognized by their
+`"type": "refnum"` property in their JSON response when querying them.
