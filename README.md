@@ -247,7 +247,7 @@ not all paths that can be read are actually listed here. Some of the listed
 entries are themselves directories, they can be recognized by their
 `"type": "refnum"` property in their JSON response when querying them.
 
-# Changing settings
+# Modifying settings
 
 Some settings can be changed by sending data using HTTP POST requests to the
 respective URIs. The data sent must be encrypted JSON data encoded as base64.
@@ -276,3 +276,12 @@ Finally, to send this data using HTTP POST, curl can be used:
 
 Here the -d option tells curl to send the given data, and this also tells curl
 to use method POST instead of method GET.
+
+## Modifying "switchProgram" data
+
+Although reading switch program data will retrieve a json object with multiple
+fields, one of which is named "switchPoints" and contains an array, posting a
+similar javascript object in order to change the switch program will not work.
+
+Instead, one must post only the array that would be contained in field
+"switchPoints", i.e. our json data has to start with "[" and end with "]".
